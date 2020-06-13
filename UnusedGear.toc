@@ -1,9 +1,9 @@
 ## Interface: 80300
 ## Title: Unused Gear
-## Notes: Sort out unused gear. 0.4-alpha
+## Notes: Sort out unused gear. 0.6.2-alpha-5-gc578541
 ## Author: opussf
-## Version: 0.4-alpha
-## Description: Sort out unused gear. 0.4-alpha
+## Version: 0.6.2-alpha-5-gc578541
+## Description: Sort out unused gear. 0.6.2-alpha-5-gc578541
 ## SavedVariables: UnusedGear_savedata
 ## SavedVariablesPerCharacter:
 UnusedGear.lua

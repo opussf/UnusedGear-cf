@@ -1,6 +1,6 @@
-UnusedGear_MSG_ADDONNAME = "UnusedGear";
-UnusedGear_MSG_VERSION   = GetAddOnMetadata(UnusedGear_MSG_ADDONNAME,"Version");
-UnusedGear_MSG_AUTHOR    = "opussf";
+UNUSEDGEAR_MSG_ADDONNAME = "UnusedGear"
+UNUSEDGEAR_MSG_VERSION   = GetAddOnMetadata( UNUSEDGEAR_MSG_ADDONNAME,"Version" )
+UNUSEDGEAR_MSG_AUTHOR    = "opussf"
 
 -- Colours
 COLOR_RED = "|cffff0000";
@@ -16,7 +16,8 @@ COLOR_END = "|r";
 
 UnusedGear = {}
 UnusedGear_Options = {
-	["targetBag"] = 0
+	["targetBag"] = 0,
+	["moveLimit"] = 20,
 }
 UnusedGear_savedata = {}
 -- itemLog = { link = { log, movedCount, lastMoved } }
@@ -61,7 +62,7 @@ function UnusedGear.Print( msg, showName)
 	-- print to the chat frame
 	-- set showName to false to suppress the addon name printing
 	if (showName == nil) or (showName) then
-		msg = COLOR_GREEN..UnusedGear_MSG_ADDONNAME.."> "..COLOR_END..msg
+		msg = COLOR_GREEN..UNUSEDGEAR_MSG_ADDONNAME.."> "..COLOR_END..msg
 	end
 	DEFAULT_CHAT_FRAME:AddMessage( msg )
 end
@@ -76,6 +77,9 @@ function UnusedGear.OnLoad()
 	UnusedGear_Frame:RegisterEvent( "PLAYER_LEAVING_WORLD" )
 	local localizedClass, englishClass, classIndex = UnitClass( "player" )
 	UnusedGear.maxArmorType = UnusedGear.armorTypes[ UnusedGear.maxArmorTypeByClass[ englishClass ] ]
+	SLASH_UNUSEDGEAR1 = "/UG"
+	SLASH_UNUSEDGEAR2 = "/UNUSEDGEAR"
+	SlashCmdList["UNUSEDGEAR"] = function( msg ) UnusedGear.Command( msg ); end
 
 	--AutoProfit:RegisterEvent("MERCHANT_CLOSED");
 	--ap.ForAllJunk();
@@ -105,16 +109,18 @@ function UnusedGear.VARIABLES_LOADED()
 	UnusedGear.myIgnoreItems = UnusedGear_savedata[UnusedGear.realm][UnusedGear.name].ignoreItems
 end
 function UnusedGear.PLAYER_LEAVING_WORLD()
+	local lastMerchantShow = ( UnusedGear_savedata[UnusedGear.realm][UnusedGear.name].lastMerchantShow and
+			UnusedGear_savedata[UnusedGear.realm][UnusedGear.name].lastMerchantShow-1 or time() - 3600 )
 	for link, item in pairs( UnusedGear.myItemLog ) do
-		if( ( item.lastSeen and item.lastSeen+3600 < time() ) or not item.lastSeen ) then -- one hour expire
+		if( ( item.lastSeen and item.lastSeen < lastMerchantShow ) or not item.lastSeen ) then
 			UnusedGear.myItemLog[link] = nil
 		end
 	end
 end
 function UnusedGear.MERCHANT_SHOW()
-	--UnusedGear.Print( "MERCHANT_SHOW" )
 	UnusedGear.BuildGearSets()
 	UnusedGear.ExtractItems()
+	UnusedGear_savedata[UnusedGear.realm][UnusedGear.name].lastMerchantShow = time()
 end
 UnusedGear.SCRAPPING_MACHINE_SHOW = UnusedGear.MERCHANT_SHOW
 UnusedGear.AUCTION_HOUSE_SHOW = UnusedGear.MERCHANT_SHOW
@@ -138,15 +144,71 @@ function UnusedGear.BuildGearSets()
 		end
 	end
 end
+function UnusedGear.Reset()
+	UnusedGear.Print( string.format( "Performing reset for %s:%s", UnusedGear.name, UnusedGear.realm ) )
+	UnusedGear.myIgnoreItems = {}
+	UnusedGear.myItemLog = {}
+end
+-- Command code
+function UnusedGear.PrintHelp()
+	UnusedGear.Print( UNUSEDGEAR_MSG_ADDONNAME.." version: "..UNUSEDGEAR_MSG_VERSION )
+	UnusedGear.Print( "Use: /UG or /UNUSEDGEAR for these commands: ")
+
+	for cmd, info in pairs( UnusedGear.commandList ) do
+		UnusedGear.Print( string.format( "-- %s %s -> %s",
+				cmd, info.help[1], info.help[2] ) )
+	end
+end
+UnusedGear.commandList = {
+	["help"] = {
+		["func"] = UnusedGear.PrintHelp,
+		["help"] = { "", "Print this help" },
+	},
+	["reset"] = {
+		["func"] = UnusedGear.Reset,
+		["help"] = { "", "Reset "..UNUSEDGEAR_MSG_ADDONNAME.." for this char." },
+	},
+	["<ItemLink>"] = {
+		["help"] = { "", "Toggle ignoring <ItemLink>" },
+	},
+}
+function UnusedGear.ParseCmd( msg )
+	if msg then
+		local a,b,c = strfind(msg, "(%S+)")  --contiguous string of non-space characters
+		if a then
+			return c, strsub(msg, b+2)
+		else
+			return ""
+		end
+	end
+end
+function UnusedGear.Command( msg )
+	local cmd, param = UnusedGear.ParseCmd( msg )
+	cmd = string.lower( cmd )
+	local cmdFunc = UnusedGear.commandList[cmd]
+	if cmdFunc then
+		cmdFunc.func( param )
+	else
+		local itemID = UnusedGear.GetItemIdFromLink( msg )
+		if( itemID ) then
+			UnusedGear.myIgnoreItems[itemID] = not UnusedGear.myIgnoreItems[itemID]
+			UnusedGear.Print( string.format( "%s is %sbeing ignored.", msg, ( UnusedGear.myIgnoreItems[itemID] and "" or "not " ) ) )
+		else
+			UnusedGear.PrintHelp()
+		end
+	end
+end
 -- moveTests { testfunction, truthmessage, falsemessage }
 moveTests = {
-	{ function( link ) return not UnusedGear.myIgnoreItems[link]; end, nil, "Ignored" },
-	{ function( link ) _, _, iRarity = GetItemInfo( link ); return iRarity < 6; end, nil, "Rarity is too high" },
+	{ function( link ) local itemID = UnusedGear.GetItemIdFromLink(link); return not UnusedGear.myIgnoreItems[itemID]; end, nil, "Ignored" },
+	{ function( link ) _, _, iRarity = GetItemInfo( link ); return( iRarity and iRarity < 6 ); end, nil, "Rarity is too high" },
 	{ function( link )
 			_, _, _, _, _, iType, iSubType = GetItemInfo( link )
 			iArmorType = UnusedGear.armorTypes[ iSubType ]
 			return( ( iType == "Armor" and iArmorType ) or iType == "Weapon" or iSubType == "Shields" )
 		end, "Armor, weapon, or shield", nil }, --"non equipable item" },
+	{ function( link ) _, _, _, _, itemMinLevel = GetItemInfo( link ); return( itemMinLevel <= UnitLevel( "player" ) ); end,
+			"item can be used", "item too high to use" },
 	{ function( link ) iID = tonumber( UnusedGear.GetItemIdFromLink( link ) ); return not UnusedGear.itemsInSets[ iID ]; end,
 			"not in itemsets", "in an itemset" },
 	{ function( link ) iName = GetItemInfo( link ); return not string.find( iName, "Tabard" ); end, nil, nil }, --"not a Tabard", "is a Tabard" },
@@ -170,7 +232,6 @@ function UnusedGear.ForAllGear( action, message )
 							toMove = toMove and testResult  -- any failure will set this to false
 							testLog = testStruct[ testResult and 2 or 3 ]
 							if testLog then table.insert( itemLog, testStruct[ testResult and 2 or 3 ] ) end
-							--print( test..":"..(toMove and "True" or "False" ) )
 							test = test + 1
 						end
 					end
@@ -193,9 +254,12 @@ function UnusedGear.ForAllGear( action, message )
 					if( link ) then
 						UnusedGear.myItemLog[link] = UnusedGear.myItemLog[link] or { ["countMoved"] = 0 }
 
-						if( UnusedGear.myItemLog[link].countMoved > 20 ) then
-							table.insert( itemLog, "moved many times.\nI'm ignoring this item in the future.")
-							UnusedGear.myIgnoreItems[link] = time()
+						if( UnusedGear.myItemLog[link].countMoved >= UnusedGear_Options.moveLimit ) then
+							table.insert( itemLog,
+									string.format( "moved many times.\nI'm ignoring this item in the future.\nUse %s %s to toggle ignoring of this item",
+										SLASH_UNUSEDGEAR1, link ) )
+							local itemID = UnusedGear.GetItemIdFromLink( link )
+							UnusedGear.myIgnoreItems[itemID] = time()
 						end
 						UnusedGear.myItemLog[link]["log"] = table.concat( itemLog, "; " )
 						UnusedGear.myItemLog[link]["lastSeen"] = time()
