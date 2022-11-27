@@ -68,7 +68,7 @@ function UnusedGear.Print( msg, showName)
 end
 function UnusedGear.OnLoad()
 	UnusedGear_Frame:RegisterEvent( "MERCHANT_SHOW" )
-	UnusedGear_Frame:RegisterEvent( "SCRAPPING_MACHINE_SHOW" )
+	--UnusedGear_Frame:RegisterEvent( "SCRAPPING_MACHINE_SHOW" )
 	UnusedGear_Frame:RegisterEvent( "EQUIPMENT_SETS_CHANGED" )
 	UnusedGear_Frame:RegisterEvent( "AUCTION_HOUSE_SHOW" )
 	UnusedGear_Frame:RegisterEvent( "BANKFRAME_OPENED" )
@@ -89,8 +89,7 @@ function UnusedGear.ADDON_LOADED()
 	-- Unregister the event for this method.
 	UnusedGear_Frame:UnregisterEvent("ADDON_LOADED")
 
-	GameTooltip:HookScript( "OnTooltipSetItem", UnusedGear.hookSetItem )
-	ItemRefTooltip:HookScript( "OnTooltipSetItem", UnusedGear.hookSetItem )
+	TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Item, UnusedGear.onTooltipSetItem)
 	UnusedGear.name = UnitName("player")
 	UnusedGear.realm = GetRealmName()
 end
@@ -107,6 +106,7 @@ function UnusedGear.VARIABLES_LOADED()
 
 	UnusedGear.myItemLog = UnusedGear_savedata[UnusedGear.realm][UnusedGear.name].itemLog
 	UnusedGear.myIgnoreItems = UnusedGear_savedata[UnusedGear.realm][UnusedGear.name].ignoreItems
+	UnusedGear_savedata[UnusedGear.realm][UnusedGear.name].problemItems = UnusedGear_savedata[UnusedGear.realm][UnusedGear.name].problemItems or {}
 end
 function UnusedGear.PLAYER_LEAVING_WORLD()
 	local lastMerchantShow = ( UnusedGear_savedata[UnusedGear.realm][UnusedGear.name].lastMerchantShow and
@@ -122,7 +122,7 @@ function UnusedGear.MERCHANT_SHOW()
 	UnusedGear.ExtractItems()
 	UnusedGear_savedata[UnusedGear.realm][UnusedGear.name].lastMerchantShow = time()
 end
-UnusedGear.SCRAPPING_MACHINE_SHOW = UnusedGear.MERCHANT_SHOW
+--UnusedGear.SCRAPPING_MACHINE_SHOW = UnusedGear.MERCHANT_SHOW
 UnusedGear.AUCTION_HOUSE_SHOW = UnusedGear.MERCHANT_SHOW
 UnusedGear.BANKFRAME_OPENED = UnusedGear.MERCHANT_SHOW
 
@@ -200,77 +200,87 @@ function UnusedGear.Command( msg )
 end
 -- moveTests { testfunction, truthmessage, falsemessage }
 moveTests = {
-	{ function( link ) local itemID = UnusedGear.GetItemIdFromLink(link); return not UnusedGear.myIgnoreItems[itemID]; end, nil, "Ignored" },
-	{ function( link ) _, _, iRarity = GetItemInfo( link ); return( iRarity and iRarity < 6 ); end, nil, "Rarity is too high" },
-	{ function( link )
-			_, _, _, _, _, iType, iSubType = GetItemInfo( link )
-			iArmorType = UnusedGear.armorTypes[ iSubType ]
-			return( ( iType == "Armor" and iArmorType ) or iType == "Weapon" or iSubType == "Shields" )
-		end, "Armor, weapon, or shield", nil }, --"non equipable item" },
-	{ function( link ) _, _, _, _, itemMinLevel = GetItemInfo( link ); return( itemMinLevel <= UnitLevel( "player" ) ); end,
-			"item can be used", "item too high to use" },
-	{ function( link ) iID = tonumber( UnusedGear.GetItemIdFromLink( link ) ); return not UnusedGear.itemsInSets[ iID ]; end,
+	{ function( itemStruct ) return not UnusedGear.myIgnoreItems[itemStruct.itemID]; end, nil, "Ignored" },
+	{ function( itemStruct ) return( itemStruct.quality < 6 ); end, nil, "Rarity is too high" },
+	{ function( itemStruct )
+	 		_, _, _, _, _, iType, iSubType = GetItemInfo( itemStruct.hyperlink )
+	 		iArmorType = UnusedGear.armorTypes[ iSubType ]
+	 		return( ( iType == "Armor" and iArmorType ) or iType == "Weapon" or iSubType == "Shields" )
+	 	end, "Armor, weapon, or shield", nil }, --"non equipable item" },
+	{ function( itemStruct ) _, _, _, _, itemMinLevel = GetItemInfo( itemStruct.hyperlink ); return( itemMinLevel <= UnitLevel( "player" ) ); end,
+	 		"item can be used", "item too high to use" },
+	{ function( itemStruct ) return not UnusedGear.itemsInSets[ itemStruct.itemID ]; end,
 			"not in itemsets", "in an itemset" },
-	{ function( link ) iName = GetItemInfo( link ); return not string.find( iName, "Tabard" ); end, nil, nil }, --"not a Tabard", "is a Tabard" },
+	{ function( itemStruct ) iName = GetItemInfo( itemStruct.hyperlink ); return not string.find( iName, "Tabard" ); end, nil, nil }, --"not a Tabard", "is a Tabard" },
+	-- { function( itemStruct ) return true; end, "Set True", "Set False" }
 }
 function UnusedGear.ForAllGear( action, message )
 	-- work through all the times
 	moveCount = 0
-	for bag = 0, 4 do
-		if GetContainerNumSlots( bag ) > 0 then  -- This slot has a bag
-			if not GetBagSlotFlag( bag, LE_BAG_FILTER_FLAG_IGNORE_CLEANUP ) then  -- this bag is not ignored
-				for slot = 0, GetContainerNumSlots( bag ) do -- work through this bag
-					itemLog = {}
-					toMove, moved = true, false  -- assume to moved
-					local texture, itemCount, locked, quality, readable, lootable, link =
-							GetContainerItemInfo( bag, slot )
-					if( link ) then  -- only do work with slots that have items
-						test = 1
-						while( toMove and test <= #moveTests ) do
-							testStruct = moveTests[test]
-							testResult = testStruct[1]( link )
-							toMove = toMove and testResult  -- any failure will set this to false
-							testLog = testStruct[ testResult and 2 or 3 ]
-							if testLog then table.insert( itemLog, testStruct[ testResult and 2 or 3 ] ) end
-							test = test + 1
-						end
-					end
-					if toMove then
-						targetBagID, targetSlot = UnusedGear.GetLastFreeSlotInBag( UnusedGear_Options.targetBag )
-						if( targetBagID ) then
-							ClearCursor()
-							PickupContainerItem( bag,  slot )
-							if( targetBagID == 0 ) then
-								PutItemInBackpack()
-								table.insert( itemLog, "Moved to Backpack" )
-							else
-								PutItemInBag( targetBagID + 19 )
-								table.insert( itemLog, "Moved to bag:"..targetBagID )
-							end
-							moveCount = moveCount + 1
-							moved = true
-						end
-					end
-					if( link ) then
-						UnusedGear.myItemLog[link] = UnusedGear.myItemLog[link] or { ["countMoved"] = 0 }
+	for bag = 0, NUM_BAG_SLOTS do
+		-- if C_Container.GetContainerNumFreeSlots( bag ) > 0 then  -- This slot has a bag
+			--if not GetBagSlotFlag( bag, LE_BAG_FILTER_FLAG_IGNORE_CLEANUP ) then  -- this bag is not ignored
+		for slot = 0, C_Container.GetContainerNumSlots( bag ) do -- work through this bag
+			itemLog = {}
+			toMove, moved = true, false  -- assume to moved
+			local itemStruct = C_Container.GetContainerItemInfo( bag, slot )
+			-- itemStruct{ itemID, quality, isBound }
+			-- local itemID, link
+			-- if( itemStruct ) then
+			-- 	itemID = itemStruct.itemID
+			-- 	link = itemStruct.hyperlink
+			-- end
 
-						if( UnusedGear.myItemLog[link].countMoved >= UnusedGear_Options.moveLimit ) then
-							table.insert( itemLog,
-									string.format( "moved many times.\nI'm ignoring this item in the future.\nUse %s %s to toggle ignoring of this item",
-										SLASH_UNUSEDGEAR1, link ) )
-							local itemID = UnusedGear.GetItemIdFromLink( link )
-							UnusedGear.myIgnoreItems[itemID] = time()
-						end
-						UnusedGear.myItemLog[link]["log"] = table.concat( itemLog, "; " )
-						UnusedGear.myItemLog[link]["lastSeen"] = time()
-						if moved then
-							UnusedGear.myItemLog[link]["lastMoved"] = time()
-							UnusedGear.myItemLog[link]["countMoved"] = UnusedGear.myItemLog[link].countMoved + 1
-						end
+			if( itemStruct ) then  -- only do work with slots that have items
+				--print( itemStruct.hyperlink.." is in ("..bag..", "..slot..") "..itemStruct.quality )
+				test = 1
+				while( toMove and test <= #moveTests ) do
+					testStruct = moveTests[test]
+					testResult = testStruct[1]( itemStruct )
+					--print( "  is "..(testResult and "true" or "false") )
+					toMove = toMove and testResult  -- any failure will set this to false
+					testLog = testStruct[ testResult and 2 or 3 ]
+					if testLog then table.insert( itemLog, testLog ) end
+					--print( table.concat( itemLog, "-"))
+					test = test + 1
+				end
+			end
+			if toMove then
+				targetBagID, targetSlot = UnusedGear.GetLastFreeSlotInBag( UnusedGear_Options.targetBag )
+				if( targetBagID ) then
+					ClearCursor()
+					C_Container.PickupContainerItem( bag,  slot )
+					if( targetBagID == 0 ) then
+						PutItemInBackpack()
+						table.insert( itemLog, "Moved to Backpack" )
+					else
+						PutItemInBag( targetBagID + 30 )
+						table.insert( itemLog, "Moved to bag:"..targetBagID )
 					end
+					moveCount = moveCount + 1
+					moved = true
+				end
+			end
+			if( itemStruct ) then
+				UnusedGear.myItemLog[itemStruct.itemID] = UnusedGear.myItemLog[itemStruct.itemID] or { ["countMoved"] = 0 }
+
+				if( UnusedGear.myItemLog[itemStruct.itemID].countMoved >= UnusedGear_Options.moveLimit ) then
+					table.insert( itemLog,
+							string.format( "moved many times.\nI'm ignoring this item in the future.\nUse %s %s to toggle ignoring of this item",
+								SLASH_UNUSEDGEAR1, itemStruct.hyperlink ) )
+					UnusedGear.myIgnoreItems[itemStruct.itemID] = time()
+				end
+				UnusedGear.myItemLog[itemStruct.itemID]["log"] = table.concat( itemLog, "; " )
+				UnusedGear.myItemLog[itemStruct.itemID]["lastSeen"] = time()
+				UnusedGear.myItemLog[itemStruct.itemID]["link"] = itemStruct.hyperlink
+				if moved then
+					UnusedGear.myItemLog[itemStruct.itemID]["lastMoved"] = time()
+					UnusedGear.myItemLog[itemStruct.itemID]["countMoved"] = UnusedGear.myItemLog[itemStruct.itemID].countMoved + 1
 				end
 			end
 		end
+			--end
+		--end
 	end
 end
 function UnusedGear.ExtractItems()
@@ -280,24 +290,59 @@ function UnusedGear.GetItemIdFromLink( itemLink )
 	-- returns just the integer itemID
 	-- itemLink can be a full link, or just "item:999999999"
 	if itemLink then
-		return strmatch( itemLink, "item:(%d*)" )
+		return tonumber(strmatch( itemLink, "item:(%d*)" ))
 	end
 end
 function UnusedGear.GetLastFreeSlotInBag( bagID )
-	freeSlots, typeid = GetContainerNumFreeSlots( bagID )
+	freeSlots, typeid = C_Container.GetContainerNumFreeSlots( bagID )
 	if( freeSlots > 0 ) then
-		for slot = GetContainerNumSlots( bagID ), 0, -1 do
-			local texture = GetContainerItemInfo( bagID, slot )
+		for slot = C_Container.GetContainerNumSlots( bagID ), 0, -1 do
+			local texture = C_Container.GetContainerItemInfo( bagID, slot )
 			if not texture then
 				return bagID, slot
 			end
 		end
 	end
 end
-function UnusedGear.hookSetItem( tooltip, ... ) -- is passed the tooltip frame as a table
-	local item, link = tooltip:GetItem()  -- name, link
-	if( UnusedGear.myItemLog[link] and UnusedGear.myItemLog[link].log ) then
-		tooltip:AddDoubleLine( UnusedGear.myItemLog[link].log,
-				( UnusedGear.myItemLog[link].countMoved > 0 and "Moved:"..UnusedGear.myItemLog[link].countMoved or "" ) )
+function UnusedGear.onTooltipSetItem( tooltip, tooltipdata ) -- is passed the tooltip frame as a table
+	link = select( 2, GetItemInfo( tooltipdata.id ) )
+
+	if( UnusedGear.myItemLog[tooltipdata.id] and UnusedGear.myItemLog[tooltipdata.id].log ) then
+		UnusedGear.lineData = {
+			["leftText"] = UnusedGear.myItemLog[tooltipdata.id].log,
+			["rightText"] = ( UnusedGear.myItemLog[tooltipdata.id].countMoved > 0 and "Moved:"..UnusedGear.myItemLog[tooltipdata.id].countMoved or "" )
+		}
+		--print( link..":"..UnusedGear.myItemLog[tooltipdata.id].log )
+		tooltip:AddLineDataText( UnusedGear.lineData )
+	-- else
+	-- 	UnusedGear_savedata[UnusedGear.realm][UnusedGear.name].problemItems[tooltipdata.id] = true
+	-- 	for k in pairs(UnusedGear.myItemLog) do
+	-- 		if UnusedGear.GetItemIdFromLink(k) == UnusedGear.GetItemIdFromLink(link) then
+	-- 			print( k.." matches")
+	-- 		end
+	-- 	end
 	end
+	-- itemID = tostring(tooltipdata.id)
+
+	-- if itemID and INEED_data[itemID] then
+	-- 	for realm in pairs(INEED_data[itemID]) do
+	-- 		if realm == INEED.realm then
+	-- 			for name, data in pairs(INEED_data[itemID][realm]) do
+	-- 				INEED.lineData = {
+	-- 					["leftText"] = name,
+	-- 					["rightText"] = string.format("Needs: %i / %i", data.total + (data.inMail or 0), data.needed)
+	-- 				}
+	-- 				tooltip:AddLineDataText(INEED.lineData)
+	-- 			end
+	-- 		end
+	-- 	end
+	-- end
+
+
+
+	-- local item, link = tooltip:GetItem()  -- name, link
+	-- if( UnusedGear.myItemLog[link] and UnusedGear.myItemLog[link].log ) then
+	-- 	tooltip:AddDoubleLine( UnusedGear.myItemLog[link].log,
+	-- 			( UnusedGear.myItemLog[link].countMoved > 0 and "Moved:"..UnusedGear.myItemLog[link].countMoved or "" ) )
+	-- end
 end

@@ -1,3 +1,3 @@
-Changes since 1.0..
+Changes since 1.0.3..
 
-* 24e8a56 2020-06-13 13:18:51 -0700 -  (HEAD -> master, tag: 1.0, origin/tests, origin/master, origin/develop, tests, develop) Update README, some used for addon description. <opussf>
+* 9b3c307 2022-11-26 14:19:46 -0800 -  (HEAD -> master, tag: 1.0.3, origin/master) 100002 Changes <opussf>

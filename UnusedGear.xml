@@ -9,9 +9,11 @@ xsi:schemaLocation="http://www.blizzard.com/wow/ui/
 				UnusedGear.OnLoad();
 				self:Hide();
 			</OnLoad>
+			<!--
 			<OnUpdate>
 				UnusedGear.OnUpdate(arg1);
 			</OnUpdate>
+			-->
 			<OnEvent>
 				UnusedGear[event](self, ...)
 			</OnEvent>
