@@ -47,6 +47,7 @@ UnusedGear.maxArmorTypeByClass = {
 	["DEATH KNIGHt"] = "Plate",
 	["DEMON HUNTER"] = "Leather",
 	["DRUID"] = "Leather",
+	["EVOKER"] = "Mail",
 	["HUNTER"] = "Mail",
 	["MAGE"] = "Cloth",
 	["MONK"] = "Leather",
@@ -118,6 +119,16 @@ function UnusedGear.PLAYER_LEAVING_WORLD()
 	end
 end
 function UnusedGear.MERCHANT_SHOW()
+	local highestBagNumber = 0
+	for bag = 0, NUM_BAG_SLOTS do
+		if C_Container.GetContainerNumSlots( bag ) > 0 then
+			highestBagNumber = max( highestBagNumber, bag )
+		end
+	end
+
+	-- GetSortBagsRightToLeft is normally false
+	UnusedGear_Options.targetBag = C_Container.GetSortBagsRightToLeft() and highestBagNumber or 0
+
 	UnusedGear.BuildGearSets()
 	UnusedGear.ExtractItems()
 	UnusedGear_savedata[UnusedGear.realm][UnusedGear.name].lastMerchantShow = time()
@@ -191,6 +202,7 @@ function UnusedGear.Command( msg )
 	else
 		local itemID = UnusedGear.GetItemIdFromLink( msg )
 		if( itemID ) then
+			itemID = tonumber( itemID )
 			UnusedGear.myIgnoreItems[itemID] = not UnusedGear.myIgnoreItems[itemID]
 			UnusedGear.Print( string.format( "%s is %sbeing ignored.", msg, ( UnusedGear.myIgnoreItems[itemID] and "" or "not " ) ) )
 		else
@@ -268,7 +280,7 @@ function UnusedGear.ForAllGear( action, message )
 					table.insert( itemLog,
 							string.format( "moved many times.\nI'm ignoring this item in the future.\nUse %s %s to toggle ignoring of this item",
 								SLASH_UNUSEDGEAR1, itemStruct.hyperlink ) )
-					UnusedGear.myIgnoreItems[itemStruct.itemID] = time()
+					UnusedGear.myIgnoreItems[tonumber( itemStruct.itemID )] = time()
 				end
 				UnusedGear.myItemLog[itemStruct.itemID]["log"] = table.concat( itemLog, "; " )
 				UnusedGear.myItemLog[itemStruct.itemID]["lastSeen"] = time()
