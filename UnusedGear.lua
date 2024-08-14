@@ -1,20 +1,21 @@
-UNUSEDGEAR_MSG_ADDONNAME = "UnusedGear"
-UNUSEDGEAR_MSG_VERSION   = GetAddOnMetadata( UNUSEDGEAR_MSG_ADDONNAME,"Version" )
-UNUSEDGEAR_MSG_AUTHOR    = "opussf"
+-- UNUSEDGEAR 1.1.5
+UNUSEDGEAR_SLUG, UnusedGear = ...
+UNUSEDGEAR_MSG_ADDONNAME    = C_AddOns.GetAddOnMetadata( UNUSEDGEAR_SLUG, "Title" )
+UNUSEDGEAR_MSG_VERSION      = C_AddOns.GetAddOnMetadata( UNUSEDGEAR_SLUG, "Version" )
+UNUSEDGEAR_MSG_AUTHOR       = C_AddOns.GetAddOnMetadata( UNUSEDGEAR_SLUG, "Author" )
 
 -- Colours
-COLOR_RED = "|cffff0000";
-COLOR_GREEN = "|cff00ff00";
-COLOR_BLUE = "|cff0000ff";
-COLOR_PURPLE = "|cff700090";
-COLOR_YELLOW = "|cffffff00";
-COLOR_ORANGE = "|cffff6d00";
-COLOR_GREY = "|cff808080";
-COLOR_GOLD = "|cffcfb52b";
-COLOR_NEON_BLUE = "|cff4d4dff";
-COLOR_END = "|r";
+COLOR_RED = "|cffff0000"
+COLOR_GREEN = "|cff00ff00"
+COLOR_BLUE = "|cff0000ff"
+COLOR_PURPLE = "|cff700090"
+COLOR_YELLOW = "|cffffff00"
+COLOR_ORANGE = "|cffff6d00"
+COLOR_GREY = "|cff808080"
+COLOR_GOLD = "|cffcfb52b"
+COLOR_NEON_BLUE = "|cff4d4dff"
+COLOR_END = "|r"
 
-UnusedGear = {}
 UnusedGear_Options = {
 	["targetBag"] = 0,
 	["moveLimit"] = 20,
