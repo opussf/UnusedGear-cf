@@ -1,4 +1,4 @@
--- UNUSEDGEAR 1.1.5
+-- UNUSEDGEAR 1.1.6
 UNUSEDGEAR_SLUG, UnusedGear = ...
 UNUSEDGEAR_MSG_ADDONNAME    = C_AddOns.GetAddOnMetadata( UNUSEDGEAR_SLUG, "Title" )
 UNUSEDGEAR_MSG_VERSION      = C_AddOns.GetAddOnMetadata( UNUSEDGEAR_SLUG, "Version" )
@@ -214,7 +214,7 @@ end
 -- moveTests { testfunction, truthmessage, falsemessage }
 moveTests = {
 	{ function( itemStruct ) return not UnusedGear.myIgnoreItems[itemStruct.itemID]; end, nil, "Ignored" },
-	{ function( itemStruct ) return( itemStruct.quality < 6 ); end, nil, "Rarity is too high" },
+	{ function( itemStruct ) return( itemStruct.quality and itemStruct.quality < 6 ); end, nil, "Rarity is too high" },
 	{ function( itemStruct )
 	 		_, _, _, _, _, iType, iSubType = GetItemInfo( itemStruct.hyperlink )
 	 		iArmorType = UnusedGear.armorTypes[ iSubType ]
