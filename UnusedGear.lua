@@ -1,4 +1,4 @@
--- UNUSEDGEAR 1.1.8
+-- UNUSEDGEAR 1.2
 UNUSEDGEAR_SLUG, UnusedGear = ...
 UNUSEDGEAR_MSG_ADDONNAME    = C_AddOns.GetAddOnMetadata( UNUSEDGEAR_SLUG, "Title" )
 UNUSEDGEAR_MSG_VERSION      = C_AddOns.GetAddOnMetadata( UNUSEDGEAR_SLUG, "Version" )
@@ -283,7 +283,7 @@ function UnusedGear.ForAllGear( action, message )
 								SLASH_UNUSEDGEAR1, itemStruct.hyperlink ) )
 					UnusedGear.myIgnoreItems[tonumber( itemStruct.itemID )] = time()
 				end
-				UnusedGear.myItemLog[itemStruct.itemID]["log"] = table.concat( itemLog, "; " )
+				UnusedGear.myItemLog[itemStruct.itemID]["log"] = table.concat( itemLog, "\n" )
 				UnusedGear.myItemLog[itemStruct.itemID]["lastSeen"] = time()
 				UnusedGear.myItemLog[itemStruct.itemID]["link"] = itemStruct.hyperlink
 				if moved then

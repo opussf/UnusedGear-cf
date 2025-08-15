@@ -1,3 +1,5 @@
-Changes since 1.1.8..
+Changes since 1.2..
 
-* 24564bd 2025-02-26 18:39:26 -1000 -  (HEAD -> master, tag: 1.1.8, origin/master) 11.1 <opussf>
+* f2c2e8b 2025-08-15 10:13:11 -0700 -  (HEAD -> master, tag: 1.2, origin/master) Merge branch 'develop' <opussf>
+* 41a013f 2025-08-15 10:12:59 -0700 -  (develop) Merge branch 'narrow' into develop <opussf>
+* b129968 2025-07-13 17:10:54 -0700 -  line break for table, narrows the tooltip <opussf>
