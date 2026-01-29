@@ -1,9 +1,9 @@
 ## Title: Unused Gear
 ## Interface: 120000
-## Notes: Sort out unused gear. (1.2.3)
+## Notes: Sort out unused gear. (1.2.4)
 ## Author: opussf
-## Version: 1.2.3
-## Description: Sort out unused gear. 1.2.3
+## Version: 1.2.4
+## Description: Sort out unused gear. 1.2.4
 ## SavedVariables: UnusedGear_savedata
 ## SavedVariablesPerCharacter:
 UnusedGear.lua

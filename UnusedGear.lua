@@ -1,4 +1,4 @@
--- UNUSEDGEAR 1.2.3
+-- UNUSEDGEAR 1.2.4
 UNUSEDGEAR_SLUG, UnusedGear = ...
 UNUSEDGEAR_MSG_ADDONNAME    = C_AddOns.GetAddOnMetadata( UNUSEDGEAR_SLUG, "Title" )
 UNUSEDGEAR_MSG_VERSION      = C_AddOns.GetAddOnMetadata( UNUSEDGEAR_SLUG, "Version" )
@@ -318,44 +318,13 @@ function UnusedGear.GetLastFreeSlotInBag( bagID )
 	end
 end
 function UnusedGear.onTooltipSetItem( tooltip, tooltipdata ) -- is passed the tooltip frame as a table
-	link = select( 2, GetItemInfo( tooltipdata.id ) )
+	local itemID = tooltipdata.id
 
-	if( UnusedGear.myItemLog[tooltipdata.id] and UnusedGear.myItemLog[tooltipdata.id].log ) then
+	if( UnusedGear.myItemLog[itemID] and UnusedGear.myItemLog[itemID].log ) then
 		UnusedGear.lineData = {
-			["leftText"] = UnusedGear.myItemLog[tooltipdata.id].log,
-			["rightText"] = ( UnusedGear.myItemLog[tooltipdata.id].countMoved > 0 and "Moved:"..UnusedGear.myItemLog[tooltipdata.id].countMoved or "" )
+			["leftText"] = UnusedGear.myItemLog[itemID].log,
+			["rightText"] = ( UnusedGear.myItemLog[itemID].countMoved > 0 and "Moved:"..UnusedGear.myItemLog[itemID].countMoved or "" )
 		}
-		--print( link..":"..UnusedGear.myItemLog[tooltipdata.id].log )
 		tooltip:AddLineDataText( UnusedGear.lineData )
-	-- else
-	-- 	UnusedGear_savedata[UnusedGear.realm][UnusedGear.name].problemItems[tooltipdata.id] = true
-	-- 	for k in pairs(UnusedGear.myItemLog) do
-	-- 		if UnusedGear.GetItemIdFromLink(k) == UnusedGear.GetItemIdFromLink(link) then
-	-- 			print( k.." matches")
-	-- 		end
-	-- 	end
 	end
-	-- itemID = tostring(tooltipdata.id)
-
-	-- if itemID and INEED_data[itemID] then
-	-- 	for realm in pairs(INEED_data[itemID]) do
-	-- 		if realm == INEED.realm then
-	-- 			for name, data in pairs(INEED_data[itemID][realm]) do
-	-- 				INEED.lineData = {
-	-- 					["leftText"] = name,
-	-- 					["rightText"] = string.format("Needs: %i / %i", data.total + (data.inMail or 0), data.needed)
-	-- 				}
-	-- 				tooltip:AddLineDataText(INEED.lineData)
-	-- 			end
-	-- 		end
-	-- 	end
-	-- end
-
-
-
-	-- local item, link = tooltip:GetItem()  -- name, link
-	-- if( UnusedGear.myItemLog[link] and UnusedGear.myItemLog[link].log ) then
-	-- 	tooltip:AddDoubleLine( UnusedGear.myItemLog[link].log,
-	-- 			( UnusedGear.myItemLog[link].countMoved > 0 and "Moved:"..UnusedGear.myItemLog[link].countMoved or "" ) )
-	-- end
 end
