@@ -1,4 +1,4 @@
--- UNUSEDGEAR 1.2.4
+-- UNUSEDGEAR 1.2.5
 UNUSEDGEAR_SLUG, UnusedGear = ...
 UNUSEDGEAR_MSG_ADDONNAME    = C_AddOns.GetAddOnMetadata( UNUSEDGEAR_SLUG, "Title" )
 UNUSEDGEAR_MSG_VERSION      = C_AddOns.GetAddOnMetadata( UNUSEDGEAR_SLUG, "Version" )
