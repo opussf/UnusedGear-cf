@@ -216,15 +216,15 @@ moveTests = {
 	{ function( itemStruct ) return not UnusedGear.myIgnoreItems[itemStruct.itemID]; end, nil, "Ignored" },
 	{ function( itemStruct ) return( itemStruct.quality and itemStruct.quality < 6 ); end, nil, "Rarity is too high" },
 	{ function( itemStruct )
-	 		_, _, _, _, _, iType, iSubType = GetItemInfo( itemStruct.hyperlink )
+	 		_, _, _, _, _, iType, iSubType = C_Item.GetItemInfo( itemStruct.hyperlink )
 	 		iArmorType = UnusedGear.armorTypes[ iSubType ]
 	 		return( ( iType == "Armor" and iArmorType ) or iType == "Weapon" or iSubType == "Shields" )
 	 	end, "Armor, weapon, or shield", nil }, --"non equipable item" },
-	{ function( itemStruct ) _, _, _, _, itemMinLevel = GetItemInfo( itemStruct.hyperlink ); return( itemMinLevel <= UnitLevel( "player" ) ); end,
+	{ function( itemStruct ) _, _, _, _, itemMinLevel = C_Item.GetItemInfo( itemStruct.hyperlink ); return( itemMinLevel <= UnitLevel( "player" ) ); end,
 	 		"item can be used", "item too high to use" },
 	{ function( itemStruct ) return not UnusedGear.itemsInSets[ itemStruct.itemID ]; end,
 			"not in itemsets", "in an itemset" },
-	{ function( itemStruct ) iName = GetItemInfo( itemStruct.hyperlink ); return not string.find( iName, "Tabard" ); end, nil, nil }, --"not a Tabard", "is a Tabard" },
+	{ function( itemStruct ) iName = C_Item.GetItemInfo( itemStruct.hyperlink ); return not string.find( iName, "Tabard" ); end, nil, nil }, --"not a Tabard", "is a Tabard" },
 	-- { function( itemStruct ) return true; end, "Set True", "Set False" }
 }
 function UnusedGear.ForAllGear( action, message )
